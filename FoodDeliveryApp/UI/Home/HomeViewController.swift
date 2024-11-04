@@ -32,12 +32,14 @@ class HomeViewController: UIViewController {
     private lazy var collectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
            layout.scrollDirection = .vertical
+        layout.sectionHeadersPinToVisibleBounds = true
            let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
            collectionView.translatesAutoresizingMaskIntoConstraints = false
            collectionView.dataSource = self
            collectionView.delegate = self
            collectionView.register(RestaurantListCell.self, forCellWithReuseIdentifier: "restaurant_list")
            collectionView.register(CuisineCarouselListCell.self, forCellWithReuseIdentifier: "cuisine_carousel")
+        collectionView.register(HomeHeaderView.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: "header")
            return collectionView
     }()
     
@@ -84,6 +86,12 @@ extension HomeViewController: HomeViewmodelDelegate{
                    collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
                ])
     }
+    
+    func reloadData(){
+        DispatchQueue.main.async{
+            self.collectionView.reloadData()
+        }
+    }
 }
 
 
@@ -96,7 +104,8 @@ extension HomeViewController: UICollectionViewDataSource, UICollectionViewDelega
         if section == 0{
             return 1
         }else{
-            return 10
+            let restaurants = viewModel.fetchRestaurant()
+            return restaurants.count
         }
     }
     
@@ -117,7 +126,8 @@ extension HomeViewController: UICollectionViewDataSource, UICollectionViewDelega
             guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "restaurant_list", for: indexPath) as? RestaurantListCell else{
                 return UICollectionViewCell()
             }
-            cell.setUpData(cellModel: RestaurantListCellModel(restaurantImageURL: "https://buffer.com/library/content/images/size/w1200/2023/10/free-images.jpg", restaurantName: "Jaksel Abies", cuisineName: "Ngopi, Makan"))
+            let restaurants = viewModel.fetchRestaurant()
+            cell.setUpData(cellModel:restaurants[indexPath.row])
             return cell
         }
         
@@ -131,5 +141,22 @@ extension HomeViewController: UICollectionViewDataSource, UICollectionViewDelega
             return CGSize(width: UIScreen.main.bounds.width - 32, height: 290.0)
         }
        
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
+        guard let view = collectionView.dequeueReusableSupplementaryView(ofKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: "header", for: indexPath) as? HomeHeaderView else{
+            return UICollectionReusableView()
+        }
+        
+        if indexPath.section == 0{
+            view.setupTitle(title: "Cuisine")
+        }else{
+            view.setupTitle(title: "Restaurant")
+        }
+        return view
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, referenceSizeForHeaderInSection section: Int) -> CGSize {
+        return CGSize(width: UIScreen.main.bounds.width, height: HomeHeaderView.getHeight())
     }
 }
